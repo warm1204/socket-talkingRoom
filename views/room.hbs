@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>{{roomID}}</title>
+  <link rel="stylesheet" href="/css/style.css">
+  
+</head>
+<body>
+<div class="wrapper">
+<div class="an-msg">
+  昵称: <span id="userName"></span> <br/>
+  当前在线人数: <span id="count">{{users.length}}</span> <br/>
+  在线用户:  <span id="users">{{users}}</span>
+</div>
+  
+
+  <div id="msglog">
+
+  </div>
+  <textarea name="message" id="messageInput"></textarea>
+  <br/>
+  <button id="enterSay">发送</button>
+  <button id="joinOrLeave">退出房间</button>
+
+</div>
+  <script src="/socket.io/socket.io.js"></script>
+ <script type="text/javascript" src="//misc.360buyimg.com/jdf/lib/jquery-1.6.4.js?t=1701191931"></script>
+  <script>
+    $(function () {
+      // ----------设置昵称-------------
+      var userName = '';
+      while ($('#userName').text().trim() === '') {
+        userName = prompt("请设置你的昵称","");
+        $('#userName').text(userName);
+      }
+
+
+      // ---------创建连接-----------
+      var socket = io();
+
+      // 加入房间
+      socket.on('connect', function () {
+        socket.emit('join', userName);
+      });
+
+      // 监听消息
+      socket.on('msg', function (userName, msg) {
+        var userName = $('#userName').text();
+
+        var message = '' +
+            '<div class="message">' +
+            '  <span class="user">' + userName + ': </span>' +
+            '  <span class="msg">' + msg + '</span>' +
+            '</div>';
+        $('#msglog').append(message);
+        // 滚动条保持最下方
+        $('#msglog').scrollTop($('#msglog')[0].scrollHeight);  
+      });
+
+      // 监听系统消息
+      socket.on('sys', function (sysMsg, users) {
+        var message = '<div class="sysMsg">' + sysMsg + '</div>';
+        $('#msglog').append(message);
+
+        $('#count').text(users.length);
+        
+        var userArray= users.join(",")
+
+        $('#users').text(userArray);
+      });
+
+      // 发送消息
+      $('#messageInput').keydown(function (e) {
+        if (e.which === 13) {
+          e.preventDefault();
+          var msg = $(this).val();
+          $(this).val('');
+
+          socket.send(msg);
+        }
+      });
+      $('#enterSay').click(function(e) {
+        console.log("ok")
+         var msg = $('#messageInput').val();
+         $('#messageInput').val('');
+         console.log(msg)
+         socket.send(msg);
+
+      });
+
+      // 退出房间
+      $('#joinOrLeave').click(function () {
+        if ($(this).text() === '退出房间') {
+          $(this).text('进入房间');
+          socket.emit('leave');
+          var msg = '你已经退出了房间,重新发言请点击"进入房间"';
+          $('#msglog').append('<div class="sysMsg">'+msg+'</div>');
+        } else {
+          $(this).text('退出房间');
+          socket.emit('join', userName);
+        }
+
+      });
+    });
+  </script>
+</body>
+</html>
